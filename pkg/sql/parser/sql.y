@@ -390,7 +390,7 @@ func (u *sqlSymUnion) transactionModes() TransactionModes {
 %token <str>   EXISTS EXECUTE EXPERIMENTAL_FINGERPRINTS EXPLAIN EXTRACT EXTRACT_DURATION
 
 %token <str>   FALSE FAMILY FETCH FILTER FIRST FLOAT FLOAT4 FLOAT8 FLOORDIV FOLLOWING FOR
-%token <str>   FORCE_INDEX FOREIGN FROM FULL
+%token <str>   FORCE_INDEX FOREIGN FROM FULL FUNCTION
 
 %token <str>   GRANT GRANTS GREATEST GROUP GROUPING
 
@@ -419,7 +419,7 @@ func (u *sqlSymUnion) transactionModes() TransactionModes {
 %token <str>   ORDER ORDINALITY OUT OUTER OVER OVERLAPS OVERLAY
 
 %token <str>   PARENT PARTIAL PARTITION PASSWORD PAUSE PLACING PLANS POSITION
-%token <str>   PRECEDING PRECISION PREPARE PRIMARY PRIORITY
+%token <str>   PRECEDING PRECISION PREPARE PRIMARY PRIORITY PROCEDURE
 
 %token <str>   QUERIES QUERY
 
@@ -514,6 +514,8 @@ func (u *sqlSymUnion) transactionModes() TransactionModes {
 %type <Statement> create_table_as_stmt
 %type <Statement> create_user_stmt
 %type <Statement> create_view_stmt
+%type <Statement> create_function_stmt
+%type <Statement> create_procedure_stmt
 %type <Statement> delete_stmt
 %type <Statement> discard_stmt
 
@@ -1423,6 +1425,8 @@ create_stmt:
 | CREATE TABLE error   // SHOW HELP: CREATE TABLE
 | create_user_stmt     // EXTEND WITH HELP: CREATE USER
 | create_view_stmt     // EXTEND WITH HELP: CREATE VIEW
+| create_function_stmt
+| create_procedure_stmt
 | CREATE error         // SHOW HELP: CREATE
 
 // %Help: DELETE - delete rows from a table
@@ -3225,6 +3229,18 @@ create_database_stmt:
     }
    }
 | CREATE DATABASE error // SHOW HELP: CREATE DATABASE
+
+create_function_stmt:
+  CREATE FUNCTION
+  {
+    $$.val = &CreateFunction{}
+  }
+
+create_procedure_stmt:
+  CREATE PROCEDURE
+  {
+    $$.val = &CreateProcedure{}
+  }
 
 opt_template_clause:
   TEMPLATE opt_equal non_reserved_word_or_sconst
@@ -6220,6 +6236,7 @@ unreserved_keyword:
 | FIRST
 | FOLLOWING
 | FORCE_INDEX
+| FUNCTION
 | GRANTS
 | HELP
 | HIGH
@@ -6266,6 +6283,7 @@ unreserved_keyword:
 | PRECEDING
 | PREPARE
 | PRIORITY
+| PROCEDURE
 | QUERIES
 | QUERY
 | RANGE
