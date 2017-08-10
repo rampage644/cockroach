@@ -347,6 +347,13 @@ func (u *sqlSymUnion) transactionModes() TransactionModes {
     return u.val.(TransactionModes)
 }
 
+func (u *sqlSymUnion) parameter() Parameter {
+    return u.val.(Parameter)
+}
+func (u *sqlSymUnion) parameters() ParameterList {
+    return u.val.(ParameterList)
+}
+
 %}
 
 // NB: the %token definitions must come before the %type definitions in this
@@ -584,6 +591,8 @@ func (u *sqlSymUnion) transactionModes() TransactionModes {
 %type <Statement> use_stmt
 
 %type <[]string> opt_incremental
+%type <ParameterList> opt_param_list param_list
+%type <Parameter> parameter
 %type <KVOption> kv_option
 %type <[]KVOption> kv_option_list opt_with_options
 %type <str> import_data_format
@@ -615,6 +624,7 @@ func (u *sqlSymUnion) transactionModes() TransactionModes {
 
 %type <str>   name opt_name opt_name_parens opt_to_savepoint
 %type <str>   savepoint_name
+%type <str>   body
 
 %type <operator> subquery_op
 %type <FunctionReference> func_name
@@ -3237,9 +3247,48 @@ create_function_stmt:
   }
 
 create_procedure_stmt:
-  CREATE PROCEDURE
+  CREATE PROCEDURE name '(' opt_param_list ')'
+  BEGIN
+  body
+  END
   {
-    $$.val = &CreateProcedure{}
+    $$.val = &CreateProcedure{
+      Name: $3,
+      Parameters: $5.parameters(),
+      Body: $8,
+    }
+  }
+
+opt_param_list:
+  param_list
+  | /* EMPTY */
+  {
+     $$.val = ParameterList(nil)
+  }
+
+param_list:
+  param_list ',' parameter
+  {
+    $$.val = append($1.parameters(), $3.parameter())
+  }
+  | parameter
+  {
+    $$.val = ParameterList{$1.parameter()}
+  }
+
+parameter:
+  name name
+  {
+    $$.val = Parameter{
+      Name: $2,
+      Type: $1,
+    }
+  }
+
+body:
+  name
+  {
+    $$ = $1
   }
 
 opt_template_clause:

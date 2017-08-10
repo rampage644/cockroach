@@ -724,6 +724,27 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestParseFunct(t *testing.T) {
+	testData := []struct {
+		sql string
+	}{
+		{`CREATE PROCEDURE aaa() BEGIN body END`},
+		{`CREATE PROCEDURE aaa(int params) BEGIN body END`},
+		{`CREATE PROCEDURE aaa(int a, text b, float c, bigint d) BEGIN body END`},
+	}
+
+	for _, d := range testData {
+		stmts, err := Parse(d.sql)
+		if err != nil {
+			t.Fatalf("%s: expected success, but found %s", d.sql, err)
+		}
+		s := stmts.String()
+		if d.sql != s {
+			t.Errorf("expected %s, but found %s", d.sql, s)
+		}
+	}
+}
+
 // TestParse2 verifies that we can parse the supplied SQL and regenerate the
 // expected SQL string from the syntax tree. Note that if the input and output
 // SQL strings are the same, the test case should go in TestParse instead.

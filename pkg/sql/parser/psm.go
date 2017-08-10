@@ -27,9 +27,32 @@ func (node *CreateFunction) Format(buf *bytes.Buffer, f FmtFlags) {
 
 // CreateProcedure represents a CREATE PROCEDURE statement.
 type CreateProcedure struct {
+	Name       string
+	Parameters ParameterList
+	Body       string
 }
+
+type Parameter struct {
+	Type string
+	Name string
+}
+
+type ParameterList []Parameter
 
 // Format implements the NodeFormatter interface.
 func (node *CreateProcedure) Format(buf *bytes.Buffer, f FmtFlags) {
 	buf.WriteString("CREATE PROCEDURE ")
+	buf.WriteString(node.Name)
+	buf.WriteString("(")
+	for idx, param := range node.Parameters {
+		if idx > 0 {
+			buf.WriteString(", ")
+		}
+		buf.WriteString(param.Type)
+		buf.WriteString(" ")
+		buf.WriteString(param.Name)
+	}
+	buf.WriteString(") BEGIN ")
+	buf.WriteString(node.Body)
+	buf.WriteString(" END")
 }
