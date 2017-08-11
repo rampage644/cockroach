@@ -685,9 +685,43 @@ func (s *Session) CopyEnd(ctx context.Context) {
 // callbacks passed to be executed in the context of a transaction. Actual
 // execution of statements in the context of a KV txn is delegated to
 // runTxnAttempt().
+var proc parser.StatementList
+
+func replaceStoredProcedureCalls(stmts parser.StatementList) parser.StatementList {
+	ret := make(parser.StatementList, len(stmts))
+	for _, stmt := range stmts {
+		_, ok := stmt.(*parser.CallProcedure)
+		if ok {
+			for _, q := range proc {
+				ret = append(ret, q)
+			}
+		} else {
+			ret = append(ret, stmt)
+		}
+	}
+	return ret
+}
+
+func captureStoredProcedureCreation(stmts parser.StatementList) parser.StatementList {
+	ret := make(parser.StatementList, 0)
+	for _, stmt := range stmts {
+		if create, ok := stmt.(*parser.CreateProcedure); ok {
+			for _, q := range create.Body {
+				ret = append(ret, q)
+			}
+		}
+	}
+	return ret
+}
+
 func (e *Executor) execRequest(
 	session *Session, sql string, pinfo *parser.PlaceholderInfo, copymsg copyMsg,
+<<<<<<< HEAD
 ) error {
+=======
+) StatementResults {
+	fmt.Println("execRequest")
+>>>>>>> [WIP] save dirty hack, nothing works
 	var stmts StatementList
 	var err error
 	txnState := &session.TxnState
@@ -704,7 +738,12 @@ func (e *Executor) execRequest(
 	} else {
 		var sl parser.StatementList
 		sl, err = parser.Parse(sql)
-		stmts = NewStatementList(sl)
+		if proc != nil {
+			proc = captureStoredProcedureCreation(sl)
+			fmt.Println("proc", proc)
+		}
+		stmts = NewStatementList((sl))
+		fmt.Println("stmts", stmts, sl)
 	}
 	session.phaseTimes[sessionEndParse] = timeutil.Now()
 
