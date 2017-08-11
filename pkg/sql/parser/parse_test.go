@@ -728,9 +728,12 @@ func TestParseFunct(t *testing.T) {
 	testData := []struct {
 		sql string
 	}{
-		{`CREATE PROCEDURE aaa() BEGIN body END`},
-		{`CREATE PROCEDURE aaa(int params) BEGIN body END`},
-		{`CREATE PROCEDURE aaa(int a, text b, float c, bigint d) BEGIN body END`},
+		{`CREATE PROCEDURE aaa() {  }`},
+		{`CREATE PROCEDURE aaa(int params) {  }`},
+		{`CREATE PROCEDURE aaa(int a, text b, float c, bigint d) {  }`},
+		{`CREATE PROCEDURE bbb() { SELECT 1 }`},
+		{`CREATE PROCEDURE bbb(int params) { SELECT 1; SELECT 2 }`},
+		{`CALL aaa()`},
 	}
 
 	for _, d := range testData {
