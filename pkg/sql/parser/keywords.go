@@ -31,6 +31,7 @@ var keywords = map[string]int{
 	"BY":                        BY,
 	"BYTEA":                     BYTEA,
 	"BYTES":                     BYTES,
+	"CALL":                      CALL,
 	"CANCEL":                    CANCEL,
 	"CASCADE":                   CASCADE,
 	"CASE":                      CASE,

@@ -182,6 +182,8 @@ func applyLimit(plan planNode, numRows int64, soft bool) {
 	case *showRangesNode:
 	case *showFingerprintsNode:
 	case *scatterNode:
+	case *createProcedureNode:
+	case *callProcedureNode:
 
 	default:
 		panic(fmt.Sprintf("unhandled node type: %T", plan))
