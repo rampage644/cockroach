@@ -25,11 +25,21 @@ func (node *CreateFunction) Format(buf *bytes.Buffer, f FmtFlags) {
 	buf.WriteString("CREATE FUNCTION ")
 }
 
+type CallProcedure struct {
+	Name string
+}
+
+func (node *CallProcedure) Format(buf *bytes.Buffer, f FmtFlags) {
+	buf.WriteString("CALL ")
+	buf.WriteString(node.Name)
+	buf.WriteString("()")
+}
+
 // CreateProcedure represents a CREATE PROCEDURE statement.
 type CreateProcedure struct {
 	Name       string
 	Parameters ParameterList
-	Body       string
+	Body       []Statement
 }
 
 type Parameter struct {
@@ -52,7 +62,12 @@ func (node *CreateProcedure) Format(buf *bytes.Buffer, f FmtFlags) {
 		buf.WriteString(" ")
 		buf.WriteString(param.Name)
 	}
-	buf.WriteString(") BEGIN ")
-	buf.WriteString(node.Body)
-	buf.WriteString(" END")
+	buf.WriteString(") { ")
+	for idx, stmt := range node.Body {
+		if idx > 0 {
+			buf.WriteString("; ")
+		}
+		stmt.Format(buf, f)
+	}
+	buf.WriteString(" }")
 }

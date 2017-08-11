@@ -191,6 +191,12 @@ func (*CreateProcedure) StatementType() StatementType { return Ack }
 func (*CreateProcedure) StatementTag() string { return "CREATE PROCEDURE" }
 
 // StatementType implements the Statement interface.
+func (*CallProcedure) StatementType() StatementType { return Unknown }
+
+// StatementTag returns a short string identifying the type of statement.
+func (*CallProcedure) StatementTag() string { return "CALL PROCEDURE" }
+
+// StatementType implements the Statement interface.
 func (*Deallocate) StatementType() StatementType { return Ack }
 
 // StatementTag returns a short string identifying the type of statement.
@@ -648,6 +654,7 @@ func (n *CreateUser) String() string               { return AsString(n) }
 func (n *CreateView) String() string               { return AsString(n) }
 func (n *CreateFunction) String() string           { return AsString(n) }
 func (n *CreateProcedure) String() string          { return AsString(n) }
+func (n *CallProcedure) String() string            { return AsString(n) }
 func (n *Deallocate) String() string               { return AsString(n) }
 func (n *Delete) String() string                   { return AsString(n) }
 func (n *DropDatabase) String() string             { return AsString(n) }

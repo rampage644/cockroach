@@ -380,7 +380,7 @@ func (u *sqlSymUnion) parameters() ParameterList {
 %token <str>   BACKUP BEGIN BETWEEN BIGINT BIGSERIAL BIT
 %token <str>   BLOB BOOL BOOLEAN BOTH BY BYTEA BYTES
 
-%token <str>   CANCEL CASCADE CASE CAST CHAR
+%token <str>   CALL CANCEL CASCADE CASE CAST CHAR
 %token <str>   CHARACTER CHARACTERISTICS CHECK
 %token <str>   CLUSTER COALESCE COLLATE COLLATION COLUMN COLUMNS COMMIT
 %token <str>   COMMITTED CONCAT CONFLICT CONSTRAINT CONSTRAINTS
@@ -523,6 +523,7 @@ func (u *sqlSymUnion) parameters() ParameterList {
 %type <Statement> create_view_stmt
 %type <Statement> create_function_stmt
 %type <Statement> create_procedure_stmt
+%type <Statement> call_procedure_stmt
 %type <Statement> delete_stmt
 %type <Statement> discard_stmt
 
@@ -897,6 +898,7 @@ stmt:
 | cancel_stmt     // help texts in sub-rule
 | copy_from_stmt
 | create_stmt     // help texts in sub-rule
+| call_procedure_stmt
 | deallocate_stmt // EXTEND WITH HELP: DEALLOCATE
 | delete_stmt     // EXTEND WITH HELP: DELETE
 | discard_stmt    // EXTEND WITH HELP: DISCARD
@@ -3246,16 +3248,24 @@ create_function_stmt:
     $$.val = &CreateFunction{}
   }
 
+call_procedure_stmt:
+  CALL name '(' opt_param_list ')'
+  {
+    $$.val = &CallProcedure{
+      Name: $2,
+    }
+  }
+
 create_procedure_stmt:
   CREATE PROCEDURE name '(' opt_param_list ')'
-  BEGIN
-  body
-  END
+  '{'
+  stmt_list
+  '}'
   {
     $$.val = &CreateProcedure{
       Name: $3,
       Parameters: $5.parameters(),
-      Body: $8,
+      Body: $8.stmts(),
     }
   }
 
@@ -6254,6 +6264,7 @@ unreserved_keyword:
 | BEGIN
 | BLOB
 | BY
+| CALL
 | CANCEL
 | CASCADE
 | CLUSTER

@@ -327,6 +327,8 @@ func (p *planner) newPlan(
 		return p.AlterTable(ctx, n)
 	case *parser.BeginTransaction:
 		return p.BeginTransaction(n)
+	case *parser.CallProcedure:
+		return p.CallProcedure(ctx, n, desiredTypes)
 	case *parser.CancelQuery:
 		return p.CancelQuery(ctx, n)
 	case *parser.CancelJob:

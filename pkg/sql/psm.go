@@ -27,8 +27,49 @@ func (p *planner) CreateFunction(ctx context.Context, n *parser.CreateFunction) 
 	return nil, pgerror.Unimplemented(`create-function`, "CREATE FUNCTION is not implemented")
 }
 
+type createProcedureNode struct {
+	n *parser.CreateProcedure
+}
+
+var _proc *parser.CreateProcedure
+
+func (n *createProcedureNode) Start(params runParams) error {
+	return nil
+}
+
+func (*createProcedureNode) Next(runParams) (bool, error) { return false, nil }
+func (*createProcedureNode) Close(context.Context)        {}
+func (*createProcedureNode) Values() parser.Datums        { return parser.Datums{} }
+
 // CreateProcedure creates a persistent stored procedure.
 // Privileges: None.
 func (p *planner) CreateProcedure(ctx context.Context, n *parser.CreateProcedure) (planNode, error) {
-	return nil, pgerror.Unimplemented(`create-procedure`, "CREATE PROCEDURE is not implemented")
+	_proc = n
+	return &createProcedureNode{
+		n: n,
+	}, nil
+}
+
+type callProcedureNode struct {
+	n *parser.CallProcedure
+}
+
+func (p *planner) CallProcedure(ctx context.Context, n *parser.CallProcedure, desiredTypes []parser.Type) (planNode, error) {
+	panic("Shouldn't be called ever")
+}
+
+func (n *callProcedureNode) Start(params runParams) error {
+	panic("Shouldn't be called ever")
+}
+
+func (*callProcedureNode) Next(runParams) (bool, error) {
+	panic("Shouldn't be called ever")
+	return false, nil
+}
+func (*callProcedureNode) Close(context.Context) {
+	panic("Shouldn't be called ever")
+}
+func (*callProcedureNode) Values() parser.Datums {
+	panic("Shouldn't be called ever")
+	return parser.Datums{}
 }
