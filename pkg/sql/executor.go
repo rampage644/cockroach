@@ -688,7 +688,7 @@ func (s *Session) CopyEnd(ctx context.Context) {
 var proc parser.StatementList
 
 func replaceStoredProcedureCalls(stmts parser.StatementList) parser.StatementList {
-	ret := make(parser.StatementList, len(stmts))
+	ret := make(parser.StatementList, 0, len(stmts))
 	for _, stmt := range stmts {
 		_, ok := stmt.(*parser.CallProcedure)
 		if ok {
@@ -720,8 +720,11 @@ func (e *Executor) execRequest(
 ) error {
 =======
 ) StatementResults {
+<<<<<<< HEAD
 	fmt.Println("execRequest")
 >>>>>>> [WIP] save dirty hack, nothing works
+=======
+>>>>>>> Fix some errors
 	var stmts StatementList
 	var err error
 	txnState := &session.TxnState
@@ -738,12 +741,10 @@ func (e *Executor) execRequest(
 	} else {
 		var sl parser.StatementList
 		sl, err = parser.Parse(sql)
-		if proc != nil {
+		if len(proc) == 0 {
 			proc = captureStoredProcedureCreation(sl)
-			fmt.Println("proc", proc)
 		}
-		stmts = NewStatementList((sl))
-		fmt.Println("stmts", stmts, sl)
+		stmts = NewStatementList(replaceStoredProcedureCalls(sl))
 	}
 	session.phaseTimes[sessionEndParse] = timeutil.Now()
 
