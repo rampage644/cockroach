@@ -15,7 +15,10 @@
 package sql
 
 import (
+	"bytes"
+
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgerror"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 
 	"github.com/cockroachdb/cockroach/pkg/sql/parser"
@@ -31,9 +34,24 @@ type createProcedureNode struct {
 	n *parser.CreateProcedure
 }
 
-var _proc *parser.CreateProcedure
-
 func (n *createProcedureNode) Start(params runParams) error {
+	const insertStoredProcedure = `INSERT INTO system.proc ("name", "body") ` +
+		`VALUES ($1, $2)`
+	var buf bytes.Buffer
+	for idx, stmt := range n.n.Body {
+		if idx > 0 {
+			buf.WriteString("; ")
+		}
+		stmt.Format(&buf, parser.FmtSimple)
+	}
+
+	rows, err := params.p.exec(params.ctx, insertStoredProcedure, n.n.Name, buf.String())
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return errors.Errorf("%s: expected 1 result, found %d", insertStoredProcedure, rows)
+	}
 	return nil
 }
 
@@ -44,7 +62,6 @@ func (*createProcedureNode) Values() parser.Datums        { return parser.Datums
 // CreateProcedure creates a persistent stored procedure.
 // Privileges: None.
 func (p *planner) CreateProcedure(ctx context.Context, n *parser.CreateProcedure) (planNode, error) {
-	_proc = n
 	return &createProcedureNode{
 		n: n,
 	}, nil
@@ -72,4 +89,9 @@ func (*callProcedureNode) Close(context.Context) {
 func (*callProcedureNode) Values() parser.Datums {
 	panic("Shouldn't be called ever")
 	return parser.Datums{}
+}
+
+func SaveStoreProcedure(node *parser.CreateProcedure) error {
+
+	return pgerror.Unimplemented(`create-function`, "save store procedure is not implemented")
 }
