@@ -140,6 +140,14 @@ CREATE TABLE system.web_sessions (
 	INDEX("createdAt"),
 	FAMILY(id, "hashedSecret", username, "createdAt", "expiresAt", "revokedAt", "lastUsedAt", "auditInfo")
 );`
+
+	StoredProceduresSchema = `
+CREATE TABLE system.proc (
+	id				SERIAL PRIMARY KEY,
+	name			STRING NOT NULL,
+	body			STRING NOT NULL,
+	FAMILY (id, name, body)
+);`
 )
 
 func pk(name string) IndexDescriptor {
@@ -191,8 +199,9 @@ var SystemAllowedPrivileges = map[ID]privilege.Lists{
 	// users will be able to modify system tables' schemas at will. CREATE and
 	// DROP privileges are allowed on the above system tables for backwards
 	// compatibility reasons only!
-	keys.JobsTableID:        {privilege.ReadWriteData},
-	keys.WebSessionsTableID: {privilege.ReadWriteData},
+	keys.JobsTableID:             {privilege.ReadWriteData},
+	keys.WebSessionsTableID:      {privilege.ReadWriteData},
+	keys.StoredProceduresTableID: {privilege.ReadWriteData},
 }
 
 // SystemDesiredPrivileges returns the desired privilege list (i.e., the
@@ -606,6 +615,34 @@ var (
 		NextMutationID: 1,
 		FormatVersion:  3,
 	}
+
+	StoredProceduresTable = TableDescriptor{
+		Name:     "proc",
+		ID:       keys.StoredProceduresTableID,
+		ParentID: 1,
+		Version:  1,
+		Columns: []ColumnDescriptor{
+			{Name: "id", ID: 1, Type: colTypeInt, DefaultExpr: &uniqueRowIDString},
+			{Name: "name", ID: 2, Type: colTypeString},
+			{Name: "body", ID: 3, Type: colTypeString},
+		},
+		NextColumnID: 4,
+		Families: []ColumnFamilyDescriptor{
+			{
+				Name:        "fam_0_id_name_body",
+				ID:          0,
+				ColumnNames: []string{"id", "name", "body"},
+				ColumnIDs:   []ColumnID{1, 2, 3},
+			},
+		},
+		NextFamilyID:   1,
+		PrimaryIndex:   pk("id"),
+		Indexes:        []IndexDescriptor{},
+		NextIndexID:    2,
+		Privileges:     NewPrivilegeDescriptor(security.RootUser, SystemDesiredPrivileges(keys.StoredProceduresTableID)),
+		FormatVersion:  InterleavedFormatVersion,
+		NextMutationID: 1,
+	}
 )
 
 // Create the key/value pair for the default zone config entry.
@@ -640,6 +677,7 @@ func addSystemDatabaseToSchema(target *MetadataSchema) {
 	target.AddDescriptor(keys.SystemDatabaseID, &EventLogTable)
 	target.AddDescriptor(keys.SystemDatabaseID, &RangeEventTable)
 	target.AddDescriptor(keys.SystemDatabaseID, &UITable)
+	target.AddDescriptor(keys.SystemDatabaseID, &StoredProceduresTable)
 
 	// NOTE(benesch): Installation of the jobs table is intentionally omitted
 	// here; it's added via a migration in both fresh clusters and existing

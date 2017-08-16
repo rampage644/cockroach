@@ -352,6 +352,10 @@ func createJobsTable(ctx context.Context, r runner) error {
 	return createSystemTable(ctx, r, sqlbase.JobsTable)
 }
 
+func createStoredProceduresTable(ctx context.Context, r runner) error {
+	return createSystemTable(ctx, r, sqlbase.StoredProceduresTable)
+}
+
 func createSettingsTable(ctx context.Context, r runner) error {
 	return createSystemTable(ctx, r, sqlbase.SettingsTable)
 }
