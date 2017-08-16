@@ -15,6 +15,7 @@
 package sql
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -685,30 +686,37 @@ func (s *Session) CopyEnd(ctx context.Context) {
 // callbacks passed to be executed in the context of a transaction. Actual
 // execution of statements in the context of a KV txn is delegated to
 // runTxnAttempt().
-var proc parser.StatementList
-
-func replaceStoredProcedureCalls(stmts parser.StatementList) parser.StatementList {
-	ret := make(parser.StatementList, 0, len(stmts))
+func (e *Executor) replaceStoredProcedureCalls(ctx context.Context, txn *client.Txn, stmts StatementList) StatementList {
+	ret := make(StatementList, 0, len(stmts))
 	for _, stmt := range stmts {
-		_, ok := stmt.(*parser.CallProcedure)
+		call, ok := stmt.AST.(*parser.CallProcedure)
 		if ok {
-			for _, q := range proc {
+			ex := InternalExecutor{LeaseManager: e.cfg.LeaseManager}
+			rows, err := ex.QueryRowInTransaction(ctx, "call-procedure", txn, "SELECT body FROM system.proc WHERE name = $1", call.Name)
+
+			if err != nil {
+				fmt.Println(err)
+				panic("error")
+			}
+
+			var sl parser.StatementList
+			body, _ := rows[0].Next()
+			var buf bytes.Buffer
+			body.Format(&buf, parser.FmtSimple)
+			fmt.Println(buf.String())
+			fmt.Println(string(&body))
+			sl, err = parser.Parse(body.String())
+			if err != nil {
+				fmt.Println(err)
+				panic("error")
+			}
+			stmts := NewStatementList(sl)
+
+			for _, q := range stmts {
 				ret = append(ret, q)
 			}
 		} else {
 			ret = append(ret, stmt)
-		}
-	}
-	return ret
-}
-
-func captureStoredProcedureCreation(stmts parser.StatementList) parser.StatementList {
-	ret := make(parser.StatementList, 0)
-	for _, stmt := range stmts {
-		if create, ok := stmt.(*parser.CreateProcedure); ok {
-			for _, q := range create.Body {
-				ret = append(ret, q)
-			}
 		}
 	}
 	return ret
@@ -741,10 +749,7 @@ func (e *Executor) execRequest(
 	} else {
 		var sl parser.StatementList
 		sl, err = parser.Parse(sql)
-		if len(proc) == 0 {
-			proc = captureStoredProcedureCreation(sl)
-		}
-		stmts = NewStatementList(replaceStoredProcedureCalls(sl))
+		stmts = NewStatementList(sl)
 	}
 	session.phaseTimes[sessionEndParse] = timeutil.Now()
 
@@ -857,9 +862,20 @@ func (e *Executor) execParsed(
 			// Some results may have been produced by a previous attempt.
 			groupResultWriter.Reset(session.Ctx())
 			var err error
+<<<<<<< HEAD
 			remainingStmts, err = runTxnAttempt(
 				e, session, stmtsToExec, pinfo, origState, opt,
 				!inTxn /* txnPrefix */, avoidCachedDescriptors, automaticRetryCount, groupResultWriter)
+=======
+			if results != nil {
+				// Some results were produced by a previous attempt. Discard them.
+				ResultList(results).Close(ctx)
+			}
+
+			results, remainingStmts, err = runTxnAttempt(
+				e, session, e.replaceStoredProcedureCalls(ctx, txn, stmtsToExec), pinfo, origState, opt,
+				!inTxn /* txnPrefix */, avoidCachedDescriptors, automaticRetryCount)
+>>>>>>> [WIP] load stored proc from a table
 
 			// TODO(andrei): Until #7881 fixed.
 			if err == nil && txnState.State() == Aborted {
