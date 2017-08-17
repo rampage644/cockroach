@@ -701,11 +701,9 @@ func (e *Executor) replaceStoredProcedureCalls(ctx context.Context, txn *client.
 
 			var sl parser.StatementList
 			body, _ := rows[0].Next()
-			var buf bytes.Buffer
-			body.Format(&buf, parser.FmtSimple)
-			fmt.Println(buf.String())
-			fmt.Println(string(&body))
-			sl, err = parser.Parse(body.String())
+			sbody, _ := body.(*parser.DString)
+			str := string(*sbody)
+			sl, err = parser.Parse(str[:len(str)-1])
 			if err != nil {
 				fmt.Println(err)
 				panic("error")
