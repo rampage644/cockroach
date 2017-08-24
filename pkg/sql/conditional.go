@@ -10,7 +10,7 @@ import (
 type ConditionalNode struct {
 }
 
-func (p *planner) Conditional(ctx context.Context, node *Conditional) (planNode, error) {
+func (p *planner) Conditional(ctx context.Context, node *parser.Conditional) (planNode, error) {
 	return nil, fmt.Errorf("we're not quite frobnicating yet...")
 }
 
@@ -19,13 +19,13 @@ func (n *ConditionalNode) Start(params runParams) error {
 }
 
 func (n *ConditionalNode) Next(params runParams) (bool, error) {
-	return fmt.Errorf("not implemented yet")
+	return false, fmt.Errorf("not implemented yet")
 }
 
 func (n *ConditionalNode) Values() parser.Datums {
-	return fmt.Errorf("not implemented yet")
+	return nil
 }
 
 func (n *ConditionalNode) Close(ctx context.Context) {
-	return fmt.Errorf("not implemented yet")
+	panic(fmt.Errorf("not implemented yet"))
 }
