@@ -1548,6 +1548,21 @@ func (e *Executor) execStmtInOpenTxn(
 		return engine.ExecuteProcedure(s.Name)
 	}
 
+	return e.execRegularStmtInOpenTxn(
+		session, stmt, pinfo, parallelize, independentFromParallelStmts, avoidCachedDescriptors, automaticRetryCount,
+	)
+}
+
+func (e *Executor) execRegularStmtInOpenTxn(
+	session *Session,
+	stmt Statement,
+	pinfo *parser.PlaceholderInfo,
+	parallelize bool,
+	independentFromParallelStmts bool,
+	avoidCachedDescriptors bool,
+	automaticRetryCount int,
+) (_ Result, err error) {
+	txnState := &session.TxnState
 	var p *planner
 	runInParallel := parallelize && !txnState.implicitTxn
 	if runInParallel {
