@@ -685,40 +685,6 @@ func (s *Session) CopyEnd(ctx context.Context) {
 // callbacks passed to be executed in the context of a transaction. Actual
 // execution of statements in the context of a KV txn is delegated to
 // runTxnAttempt().
-func (e *Executor) replaceStoredProcedureCalls(ctx context.Context, txn *client.Txn, stmts StatementList) StatementList {
-	ret := make(StatementList, 0, len(stmts))
-	for _, stmt := range stmts {
-		call, ok := stmt.AST.(*parser.CallProcedure)
-		if ok {
-			ex := InternalExecutor{LeaseManager: e.cfg.LeaseManager}
-			rows, err := ex.QueryRowInTransaction(ctx, "call-procedure", txn, "SELECT body FROM system.proc WHERE name = $1", call.Name)
-
-			if err != nil {
-				fmt.Println(err)
-				panic("error")
-			}
-
-			var sl parser.StatementList
-			body, _ := rows[0].Next()
-			sbody, _ := body.(*parser.DString)
-			str := string(*sbody)
-			sl, err = parser.Parse(str[:len(str)-1])
-			if err != nil {
-				fmt.Println(err)
-				panic("error")
-			}
-			stmts := NewStatementList(sl)
-
-			for _, q := range stmts {
-				ret = append(ret, q)
-			}
-		} else {
-			ret = append(ret, stmt)
-		}
-	}
-	return ret
-}
-
 func (e *Executor) execRequest(
 	session *Session, sql string, pinfo *parser.PlaceholderInfo, copymsg copyMsg,
 <<<<<<< HEAD
@@ -870,7 +836,7 @@ func (e *Executor) execParsed(
 			}
 
 			results, remainingStmts, err = runTxnAttempt(
-				e, session, e.replaceStoredProcedureCalls(ctx, txn, stmtsToExec), pinfo, origState, opt,
+				e, session, stmtsToExec, pinfo, origState, opt,
 				!inTxn /* txnPrefix */, avoidCachedDescriptors, automaticRetryCount)
 >>>>>>> [WIP] load stored proc from a table
 
@@ -1576,6 +1542,10 @@ func (e *Executor) execStmtInOpenTxn(
 		pinfo = newPInfo
 		stmt.AST = ps.Statement
 		stmt.ExpectedTypes = ps.Columns
+
+	case *parser.CallProcedure:
+		engine := MakeEngine(e, session)
+		return engine.ExecuteProcedure(s.Name)
 	}
 
 	var p *planner
