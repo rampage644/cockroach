@@ -1,6 +1,8 @@
 package sql
 
 import (
+	_ "net/http/pprof"
+
 	"github.com/cockroachdb/cockroach/pkg/sql/parser"
 	"github.com/pkg/errors"
 )
@@ -27,23 +29,12 @@ func (e *Engine) ExecuteProcedure(name string, statementResultWriter StatementRe
 		return errors.Wrap(err, "call-procedure error")
 	}
 
-	var sl parser.StatementList
 	body, _ := rows[0].Next()
 	sbody, _ := body.(*parser.DString)
-	sqlStr := string(*sbody)
-	sl, err = parser.Parse(sqlStr[:len(sqlStr)-1])
-	stmts := NewStatementList(sl)
+	stmts := string(*sbody)
+	stmts = stmts[:len(stmts)-1]
 
-	if err != nil {
-		return errors.Wrap(err, "call-procedure error")
-	}
+	err = e.executor.execRequest(e.session, stmts, nil, copyMsgNone)
 
-	for _, stmt := range stmts {
-		err := e.executor.execRegularStmtInOpenTxn(e.session, stmt, nil, false, false, false, 0, statementResultWriter)
-		if err != nil {
-			return errors.Wrap(err, "call-procedure error")
-		}
-	}
-
-	return nil
+	return err
 }
