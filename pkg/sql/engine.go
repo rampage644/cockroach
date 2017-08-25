@@ -17,14 +17,14 @@ func MakeEngine(executor *Executor, sess *Session) *Engine {
 	}
 }
 
-func (e *Engine) ExecuteProcedure(name string) (res Result, err error) {
+func (e *Engine) ExecuteProcedure(name string, statementResultWriter StatementResultWriter) error {
 	ex := InternalExecutor{LeaseManager: e.executor.cfg.LeaseManager}
 	rows, err := ex.QueryRowInTransaction(
 		e.session.Ctx(), "call-procedure", e.session.TxnState.mu.txn,
 		"SELECT body FROM system.proc WHERE name = $1", name)
 
 	if err != nil {
-		return Result{}, errors.Wrap(err, "call-procedure error")
+		return errors.Wrap(err, "call-procedure error")
 	}
 
 	var sl parser.StatementList
@@ -35,17 +35,15 @@ func (e *Engine) ExecuteProcedure(name string) (res Result, err error) {
 	stmts := NewStatementList(sl)
 
 	if err != nil {
-		return Result{}, errors.Wrap(err, "call-procedure error")
+		return errors.Wrap(err, "call-procedure error")
 	}
 
 	for _, stmt := range stmts {
-		result, err := e.executor.execRegularStmtInOpenTxn(e.session, stmt, nil, false, false, false, 0)
+		err := e.executor.execRegularStmtInOpenTxn(e.session, stmt, nil, false, false, false, 0, statementResultWriter)
 		if err != nil {
-			return Result{}, errors.Wrap(err, "call-procedure error")
+			return errors.Wrap(err, "call-procedure error")
 		}
-
-		res = result
 	}
 
-	return res, err
+	return nil
 }

@@ -687,15 +687,7 @@ func (s *Session) CopyEnd(ctx context.Context) {
 // runTxnAttempt().
 func (e *Executor) execRequest(
 	session *Session, sql string, pinfo *parser.PlaceholderInfo, copymsg copyMsg,
-<<<<<<< HEAD
 ) error {
-=======
-) StatementResults {
-<<<<<<< HEAD
-	fmt.Println("execRequest")
->>>>>>> [WIP] save dirty hack, nothing works
-=======
->>>>>>> Fix some errors
 	var stmts StatementList
 	var err error
 	txnState := &session.TxnState
@@ -825,20 +817,9 @@ func (e *Executor) execParsed(
 			// Some results may have been produced by a previous attempt.
 			groupResultWriter.Reset(session.Ctx())
 			var err error
-<<<<<<< HEAD
 			remainingStmts, err = runTxnAttempt(
 				e, session, stmtsToExec, pinfo, origState, opt,
 				!inTxn /* txnPrefix */, avoidCachedDescriptors, automaticRetryCount, groupResultWriter)
-=======
-			if results != nil {
-				// Some results were produced by a previous attempt. Discard them.
-				ResultList(results).Close(ctx)
-			}
-
-			results, remainingStmts, err = runTxnAttempt(
-				e, session, stmtsToExec, pinfo, origState, opt,
-				!inTxn /* txnPrefix */, avoidCachedDescriptors, automaticRetryCount)
->>>>>>> [WIP] load stored proc from a table
 
 			// TODO(andrei): Until #7881 fixed.
 			if err == nil && txnState.State() == Aborted {
@@ -1545,11 +1526,11 @@ func (e *Executor) execStmtInOpenTxn(
 
 	case *parser.CallProcedure:
 		engine := MakeEngine(e, session)
-		return engine.ExecuteProcedure(s.Name)
+		return engine.ExecuteProcedure(s.Name, statementResultWriter)
 	}
 
 	return e.execRegularStmtInOpenTxn(
-		session, stmt, pinfo, parallelize, independentFromParallelStmts, avoidCachedDescriptors, automaticRetryCount,
+		session, stmt, pinfo, parallelize, independentFromParallelStmts, avoidCachedDescriptors, automaticRetryCount, statementResultWriter,
 	)
 }
 
@@ -1561,7 +1542,8 @@ func (e *Executor) execRegularStmtInOpenTxn(
 	independentFromParallelStmts bool,
 	avoidCachedDescriptors bool,
 	automaticRetryCount int,
-) (_ Result, err error) {
+	statementResultWriter StatementResultWriter,
+) (err error) {
 	txnState := &session.TxnState
 	var p *planner
 	runInParallel := parallelize && !txnState.implicitTxn
@@ -1581,7 +1563,7 @@ func (e *Executor) execRegularStmtInOpenTxn(
 	p.avoidCachedDescriptors = avoidCachedDescriptors
 	p.phaseTimes[plannerStartExecStmt] = timeutil.Now()
 	p.stmt = &stmt
-	p.cancelChecker = sqlbase.NewCancelChecker(p.stmt.queryMeta.ctx)
+	// p.cancelChecker = sqlbase.NewCancelChecker(p.stmt.queryMeta.ctx)
 
 	// constantMemAcc accounts for all constant folded values that are computed
 	// prior to any rows being computed.
